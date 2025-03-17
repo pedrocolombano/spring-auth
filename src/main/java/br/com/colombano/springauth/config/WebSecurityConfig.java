@@ -1,17 +1,22 @@
 package br.com.colombano.springauth.config;
 
-import br.com.colombano.springauth.service.LoginService;
+import br.com.colombano.springauth.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
@@ -23,7 +28,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class WebSecurityConfig {
 
-    private final LoginService loginService;
+    private final UserDetailsService userDetailsService;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -33,12 +39,12 @@ public class WebSecurityConfig {
                    .headers(HeadersConfigurer::disable)
                    .authorizeHttpRequests(authorize -> {
                        authorize.requestMatchers("/h2-console/**").permitAll();
+                       authorize.requestMatchers("/login").permitAll();
                        authorize.requestMatchers("/clients").hasAuthority("ADMIN");
                        authorize.anyRequest().authenticated();
                    })
-                   .userDetailsService(loginService)
-                   .httpBasic(Customizer.withDefaults())
-                   .formLogin(AbstractHttpConfigurer::disable)
+                   .userDetailsService(userDetailsService)
+                   .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                    .build();
     }
 
@@ -59,6 +65,15 @@ public class WebSecurityConfig {
         source.registerCorsConfiguration("/**", config);
 
         return new CorsFilter(source);
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager() {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        provider.setUserDetailsService(userDetailsService);
+        provider.setPasswordEncoder(passwordEncoder());
+
+        return new ProviderManager(List.of(provider));
     }
 
 }

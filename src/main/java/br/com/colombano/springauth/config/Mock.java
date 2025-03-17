@@ -27,7 +27,7 @@ public class Mock {
 
         roleRepository.saveAll(List.of(r1, r2));
 
-        Client c1 = new Client(null, "Pedro Colombano", "pedro@email.com", passwordEncoder.encode("1234"), Set.of(r1));
+        Client c1 = new Client(null, "Pedro Colombano", "pedro@email.com", passwordEncoder.encode("1234"), Set.of(r1, r2));
         Client c2 = new Client(null, "Renan Felix", "renan@email.com", passwordEncoder.encode("1234"), Set.of(r2));
         Client c3 = new Client(null, "Paulo Froes", "paulo@email.com", passwordEncoder.encode("1234"), Set.of(r2));
 
