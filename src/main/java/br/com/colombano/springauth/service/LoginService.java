@@ -5,12 +5,13 @@ import br.com.colombano.springauth.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -26,12 +27,12 @@ public class LoginService {
 
         UserDetails user = clientService.loadUserByUsername(email);
 
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("email", email);
-        claims.put("roles", user.getAuthorities());
+        Set<String> roles = user.getAuthorities()
+                                .stream()
+                                .map(GrantedAuthority::getAuthority)
+                                .collect(Collectors.toSet());
 
-        String token = jwtService.generateToken(user.getUsername(), claims);
-
+        String token = jwtService.generateToken(user.getUsername(), email, roles);
         return new TokenDto(token);
     }
 }

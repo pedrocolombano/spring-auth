@@ -11,7 +11,7 @@ import javax.crypto.SecretKey;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
-import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 @Service
@@ -23,14 +23,15 @@ public class JwtService {
     @Value("${security.jwt.duration_in_hours}")
     private long durationInHours;
 
-    public String generateToken(String username, Map<String, Object> claims) {
+    public String generateToken(String username, String email, Set<String> roles) {
         return Jwts.builder()
-                .subject(username)
-                .claims(claims)
-                .issuedAt(new Date())
-                .expiration(getExpirationDate())
-                .signWith(getSigningKey())
-                .compact();
+                   .subject(username)
+                   .claim("email", email)
+                   .claim("roles", roles)
+                   .issuedAt(new Date())
+                   .expiration(getExpirationDate())
+                   .signWith(getSigningKey())
+                   .compact();
     }
 
     private Date getExpirationDate() {
@@ -56,6 +57,14 @@ public class JwtService {
         return claimsResolver.apply(claims);
     }
 
+    public Claims extractClaims(String jwt) {
+        return Jwts.parser()
+                   .verifyWith(getSigningKey())
+                   .build()
+                   .parseSignedClaims(jwt)
+                   .getPayload();
+    }
+
     public boolean validateToken(String token, String username) {
         String tokenUsername = extractUsername(token);
         return (username.equals(tokenUsername) && !isTokenExpired(token));
@@ -68,5 +77,4 @@ public class JwtService {
     private Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
     }
-
 }
